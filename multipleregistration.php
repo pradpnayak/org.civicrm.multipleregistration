@@ -217,6 +217,20 @@ function multipleregistration_civicrm_buildForm($formName, &$form) {
       //ignore exception.
     }
   }
+
+  if ('CRM_Event_Form_Participant' == $formName && !$form->getVar('_id')) {
+    CRM_Core_Region::instance('page-body')->add([
+      'template' => 'CRM/MultipleRegistration/Form/Participant.tpl',
+    ]);
+    if ($form->getVar('_context') == 'standalone') {
+      $contactId = NULL;
+    }
+    else {
+      $contactId = $form->getVar('_contactId');
+    }
+    $form->assign('eventcontactId', $contactId);
+    $form->assign('eventCF', _multipleregistration_civicrm_getCustomFieldId());
+  }
 }
 
 /**
@@ -275,6 +289,33 @@ function multipleRegistration_civicrm_postProcess($formName, &$form) {
         'id' => $form->getVar('_id'),
       ]);
       $form->ajaxResponse['updateTabs']['#tab_settings'] = 1;
+    }
+  }
+}
+
+/**
+ * Implements hook_civicrm_validateForm().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_validateForm
+ */
+function multipleRegistration_civicrm_validateForm(
+  $formName,
+  &$fields,
+  &$files,
+  &$form,
+  &$errors
+) {
+  if ('CRM_Event_Form_Participant' == $formName && !$form->getVar('_id')) {
+    if (!empty($fields['event_id'])) {
+      $ignoreMultipleRegistration = _multipleregistration_civicrm_mulitpleregistration(
+        $fields['event_id']
+      );
+      if ($ignoreMultipleRegistration) {
+        $errorMessages = $form->_errors;
+        if (!empty($errorMessages['event_id'])) {
+          $form->setElementError('event_id');
+        }
+      }
     }
   }
 }
